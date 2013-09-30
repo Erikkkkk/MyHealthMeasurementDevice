@@ -179,15 +179,34 @@ public class MainActivity extends Activity {
 						mmInStream.read(buffer);
 
 						String message = new String(buffer);
+						
+						if(message.equals("pulsewaves")) {
+							String valueToSend =  "" + pulsemeasurement();
+							byte[] sendPulseMeasurement = valueToSend.getBytes();
+							write(sendPulseMeasurement);
+						}
 
 						Log.e("simulator", "Message is: " + message);
 
 					} catch (IOException e) {
-						break;
+						e.printStackTrace();
 					}
 				}
 			}
 
+		}
+		
+		private int pulsemeasurement() {
+			
+			int minimum = 60;
+			int maximum = 100;
+			
+			int value = 0;
+			
+			value = minimum + (int)(Math.random() * ((maximum - minimum) + 1));
+			
+			return value;
+			
 		}
 
 		/* Call this from the main activity to send data to the remote device */
@@ -195,6 +214,7 @@ public class MainActivity extends Activity {
 			try {
 				mmOutStream.write(bytes);
 			} catch (IOException e) {
+				e.printStackTrace();
 			}
 		}
 
@@ -203,6 +223,7 @@ public class MainActivity extends Activity {
 			try {
 				mmSocket.close();
 			} catch (IOException e) {
+				e.printStackTrace();
 			}
 		}
 	}

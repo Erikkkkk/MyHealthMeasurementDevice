@@ -13,8 +13,12 @@ import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.YuvImage;
 import android.util.Log;
 import android.view.Menu;
+import android.view.View;
+import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 
 public class MainActivity extends Activity {
@@ -24,11 +28,27 @@ public class MainActivity extends Activity {
 
 	BluetoothAdapter btAdapter;
 	AcceptThread accepter;
+	
+	private String current_status;
+	private String current_measurement;
+	
+	private boolean connected = false;
+	private boolean stop = false;
+	
+	private static final String status_inactive = "Inactive";
+	private static final String status_active = "Active";
+	
+	private static final String measurement_pulse = "pulse";
+	private static final String measurement_bloodpressure = "bloodpressure";
+	private static final String measurement_ecg = "ecg";
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
+		
+		current_status = status_inactive;
+		current_measurement = measurement_pulse;
 
 		btAdapter = BluetoothAdapter.getDefaultAdapter();
 		if (btAdapter == null) {
@@ -59,8 +79,55 @@ public class MainActivity extends Activity {
 		startActivityForResult(setDiscoverableIntent, RESULT_OK);
 
 		listenForConnectionOfMyHealth();
+		updateTextViews();
+	}
+	
+	public void onClick(View v) {
+		if(connected) {
+		    final int id = v.getId();
+		    switch (id) {
+		    case R.id.bPulse:
+		    	current_measurement = measurement_pulse;
+		        break;
+		    case R.id.bBloodpressure:
+		    	current_measurement = measurement_bloodpressure;
+		        break;
+		    case R.id.bECG:
+		    	current_measurement = measurement_ecg;
+		        break;
+		    case R.id.bStartStop:
+		    	if(!stop) {
+			    	Button startstop = (Button) findViewById(R.id.bStartStop);
+			    	if(current_status == status_active) {
+			    		current_status = status_inactive;
+			    		stop = true;
+			    		startstop.setText("Start");
+			    	} else {
+			    		current_status = status_active;
+			    		startstop.setText("Stop");
+			    	}
+		    	}
+		    	else {
+		    		Toast.makeText(this, "Waiting for stop to start again...", Toast.LENGTH_SHORT).show();
+		    	}
+		        break;    
+		    }
+		    
+		    updateTextViews();
+		} else {
+			Toast.makeText(this, "Waiting for connection", Toast.LENGTH_SHORT).show();
+		}
 	}
 
+	public void updateTextViews() {
+		TextView measurement = (TextView) findViewById(R.id.tMeasurement);
+		measurement.setText(current_measurement);
+		
+		TextView status = (TextView) findViewById(R.id.tStatus);
+		status.setText(current_status);
+		
+	}
+	
 	private void listenForConnectionOfMyHealth() {
 		accepter = new AcceptThread();
 		accepter.start();
@@ -105,6 +172,7 @@ public class MainActivity extends Activity {
 				// If a connection was accepted
 				if (socket != null) {
 					// Do work to manage the connection (in a separate thread)
+					connected = true;
 					manageConnectedSocket(socket);
 					try {
 						mmServerSocket.close();
@@ -151,11 +219,6 @@ public class MainActivity extends Activity {
 		public void run() {
 			int bytes; // bytes returned from read()
 
-			Log.e("simulator", "Write gestuurd");
-			String string = "Hallo lees dit!!!";
-			byte[] test = string.getBytes();
-			write(test);
-
 			// Keep listening to the InputStream until an exception occurs
 			while (true) {
 
@@ -163,15 +226,32 @@ public class MainActivity extends Activity {
 
 				try {
 					available = mmInStream.available();
+					Thread.sleep(10000);
+					
+					if(stop) {
+						Log.e("simulator", "Sending STOP message");
+						String valueToSend =  current_measurement + ";stop";
+						byte[] sendPulseMeasurement = valueToSend.getBytes();
+						write(sendPulseMeasurement);
+						stop = false;
+					}
+					
+					String string = getStringToWrite();
+					byte[] test = string.getBytes();
+					write(test);
+					Log.e("simulator", "Write gestuurd");
 				} catch (IOException e1) {
 					// TODO Auto-generated catch block
 					e1.printStackTrace();
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
 				}
+				
 
 				if (available > 0) {
 
-					try {
-						
+					try {		
 						byte[] buffer;
 						
 						buffer = new byte[available];
@@ -180,17 +260,18 @@ public class MainActivity extends Activity {
 
 						String message = new String(buffer);
 						
+						/**
 						if(message.equals("pulsewaves")) {
 							String valueToSend =  "" + pulsemeasurement();
 							byte[] sendPulseMeasurement = valueToSend.getBytes();
 							write(sendPulseMeasurement);
 						}
 
-						Log.e("simulator", "Message is: " + message);
+						Log.e("simulator", "Message is: " + message);**/
 
 					} catch (IOException e) {
 						e.printStackTrace();
-					}
+					} 
 				}
 			}
 
@@ -225,6 +306,27 @@ public class MainActivity extends Activity {
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
+		}
+		
+		private String getStringToWrite() {
+			String returnStatus = "";
+			String returnValue = "No data";
+			if(current_status == status_inactive) {
+				returnStatus = status_inactive;
+			} else {
+				returnStatus = current_measurement;
+				
+				Measurement m = new Measurement();
+				if(current_measurement == measurement_pulse) {
+					returnValue = m.getPulseMeasurement();
+				} else if (current_measurement == measurement_bloodpressure) {
+					returnValue = m.getBloodpressureMeasurement();
+				} else if (current_measurement == measurement_ecg) {
+					returnValue = m.getECGMeasurement();
+				}
+			}
+			
+			return returnStatus + ";" + returnValue;
 		}
 	}
 

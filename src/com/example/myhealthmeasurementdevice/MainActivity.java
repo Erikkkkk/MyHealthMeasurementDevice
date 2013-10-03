@@ -3,6 +3,7 @@ package com.example.myhealthmeasurementdevice;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Random;
 import java.util.UUID;
 
 import android.os.Bundle;
@@ -226,7 +227,7 @@ public class MainActivity extends Activity {
 
 				try {
 					available = mmInStream.available();
-					Thread.sleep(10000);
+					Thread.sleep(1000);
 					
 					if(stop) {
 						Log.e("simulator", "Sending STOP message");
@@ -316,18 +317,47 @@ public class MainActivity extends Activity {
 			} else {
 				returnStatus = current_measurement;
 				
-				Measurement m = new Measurement();
 				if(current_measurement == measurement_pulse) {
-					returnValue = m.getPulseMeasurement();
+					returnValue = getPulseMeasurement();
 				} else if (current_measurement == measurement_bloodpressure) {
-					returnValue = m.getBloodpressureMeasurement();
+					returnValue = getBloodpressureMeasurement();
 				} else if (current_measurement == measurement_ecg) {
-					returnValue = m.getECGMeasurement();
+					returnValue = getECGMeasurement();
 				}
 			}
 			
 			return returnStatus + ";" + returnValue;
 		}
+	}
+	
+	public String getPulseMeasurement() {
+		Random r = new Random();
+		Integer pulsemeasurement = (r.nextInt(40) + 60);
+		return pulsemeasurement.toString();
+	}
+	
+	public String getBloodpressureMeasurement() {
+		Random r = new Random();
+		Integer hypotension = (r.nextInt(20) + 70);
+		Integer hypertension = (r.nextInt(20) + 110);
+		
+		return hypotension + ";" + hypertension;
+	}
+	
+	public String getECGMeasurement() {
+		Random r = new Random();
+		Integer printerval = (r.nextInt(25) + 50);
+		Integer prsegment = (r.nextInt(10) + 20);
+		Integer qrscomplex = (r.nextInt(10) + 25);
+		Integer stsegment = (r.nextInt(10) + 30);
+		Integer qtinterval = (r.nextInt(25) + 75);
+		Integer qtrough = (r.nextInt(4) - 5);
+		Integer rpeak = (r.nextInt(10) + 40);
+		Integer strough	= (r.nextInt(5) - 7); 
+		Integer tpeak = (r.nextInt(4) + 4);
+		Integer ppeak = (r.nextInt(4) + 2);
+		return printerval + ";" + prsegment + ";" + qrscomplex + ";" + stsegment + ";" + qtinterval + ";" + qtrough + ";"
+				 + rpeak + ";" + strough + ";" + tpeak + ";" + ppeak;
 	}
 
 	@Override

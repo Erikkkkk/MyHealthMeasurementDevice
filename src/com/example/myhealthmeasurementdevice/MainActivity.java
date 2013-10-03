@@ -39,14 +39,13 @@ public class MainActivity extends Activity {
 	private String current_measurement;
 	
 	private boolean connected = false;
-	private boolean stop = false;
+	private boolean send = false;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 		
-		current_status = status_inactive;
 		current_measurement = measurement_pulse;
 
 		// Make sure device has bluetooth
@@ -103,17 +102,7 @@ public class MainActivity extends Activity {
 		    	current_measurement = measurement_ecg;
 		        break;
 		    case R.id.bStartStop:
-		    	if(!stop) {
-			    	if(current_status == status_active) {
-			    		current_status = status_inactive;
-			    		stop = true;
-			    	} else {
-			    		current_status = status_active;
-			    	}
-		    	}
-		    	else {
-		    		Toast.makeText(this, "Still writing previous measurement wait one moment please....", Toast.LENGTH_SHORT).show();
-		    	}
+		    	send = true;
 		        break;    
 		    }
 		    
@@ -140,6 +129,7 @@ public class MainActivity extends Activity {
 
 	// Start the ConnectedThread and passes the socket
 	private void manageConnectedSocket(BluetoothSocket socket) {
+		connected = true;
 		connectThread = new ConnectThread(socket);
 		connectThread.start();
 	}
@@ -184,7 +174,6 @@ public class MainActivity extends Activity {
 				// If a connection was accepted
 				if (socket != null) {
 					// Do work to manage the connection (in a separate thread)
-					connected = true;
 					manageConnectedSocket(socket);
 					try {
 						mmServerSocket.close();
@@ -246,7 +235,7 @@ public class MainActivity extends Activity {
 					available = mmInStream.available();
 					Thread.sleep(1000);
 					
-					if(stop) {
+					if(send) {
 						//Log.e("simulator", "Sending STOP message");
 						//String valueToSend =  current_measurement + ";stop";
 						//byte[] sendPulseMeasurement = valueToSend.getBytes();
@@ -257,7 +246,7 @@ public class MainActivity extends Activity {
 						write(test);
 						Log.e("simulator", "Measurement " + current_measurement + " send");
 						
-						stop = false;
+						send = false;
 					}
 					
 				} catch (IOException e1) {

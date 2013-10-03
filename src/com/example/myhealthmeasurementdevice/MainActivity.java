@@ -24,11 +24,16 @@ import android.widget.Toast;
 
 public class MainActivity extends Activity {
 	private final static int REQUEST_ENABLE_BT = 1;
-
+	
+	private static final String status_inactive = "Inactive";
+	private static final String status_active = "Active";
+	private static final String measurement_pulse = "pulse";
+	private static final String measurement_bloodpressure = "bloodpressure";
+	private static final String measurement_ecg = "ecg";
+	
 	private ConnectThread connectThread;
-
-	BluetoothAdapter btAdapter;
-	AcceptThread accepter;
+	private BluetoothAdapter btAdapter;
+	private AcceptThread accepter;
 	
 	private String current_status;
 	private String current_measurement;
@@ -36,13 +41,6 @@ public class MainActivity extends Activity {
 	private boolean connected = false;
 	private boolean stop = false;
 	
-	private static final String status_inactive = "Inactive";
-	private static final String status_active = "Active";
-	
-	private static final String measurement_pulse = "pulse";
-	private static final String measurement_bloodpressure = "bloodpressure";
-	private static final String measurement_ecg = "ecg";
-
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -51,6 +49,7 @@ public class MainActivity extends Activity {
 		current_status = status_inactive;
 		current_measurement = measurement_pulse;
 
+		// Make sure device has bluetooth
 		btAdapter = BluetoothAdapter.getDefaultAdapter();
 		if (btAdapter == null) {
 			AlertDialog.Builder builder = new AlertDialog.Builder(
@@ -70,19 +69,26 @@ public class MainActivity extends Activity {
 			builder.show();
 		}
 
+		// Enable bluetooth
 		if (!btAdapter.isEnabled()) {
 			Intent enableBtIntent = new Intent(btAdapter.ACTION_REQUEST_ENABLE);
 			startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
 		}
 
+		// Make sure device is findable
 		Intent setDiscoverableIntent = new Intent(
 				btAdapter.ACTION_REQUEST_DISCOVERABLE);
 		startActivityForResult(setDiscoverableIntent, RESULT_OK);
 
+		//Start listening
 		listenForConnectionOfMyHealth();
 		updateTextViews();
 	}
 	
+	/**
+	 * Handles the button clicks 
+	 * @param v
+	 */
 	public void onClick(View v) {
 		if(connected) {
 		    final int id = v.getId();
@@ -98,47 +104,52 @@ public class MainActivity extends Activity {
 		        break;
 		    case R.id.bStartStop:
 		    	if(!stop) {
-			    	Button startstop = (Button) findViewById(R.id.bStartStop);
 			    	if(current_status == status_active) {
 			    		current_status = status_inactive;
 			    		stop = true;
-			    		startstop.setText("Start");
 			    	} else {
 			    		current_status = status_active;
-			    		startstop.setText("Stop");
 			    	}
 		    	}
 		    	else {
-		    		Toast.makeText(this, "Waiting for stop to start again...", Toast.LENGTH_SHORT).show();
+		    		Toast.makeText(this, "Still writing previous measurement wait one moment please....", Toast.LENGTH_SHORT).show();
 		    	}
 		        break;    
 		    }
 		    
 		    updateTextViews();
 		} else {
-			Toast.makeText(this, "Waiting for connection", Toast.LENGTH_SHORT).show();
+			Toast.makeText(this, "Waiting for MyHealthApp to connect", Toast.LENGTH_SHORT).show();
 		}
 	}
 
+	/**
+	 * Update the textviews that display the status and measurement type that is selected
+	 */
 	public void updateTextViews() {
 		TextView measurement = (TextView) findViewById(R.id.tMeasurement);
 		measurement.setText(current_measurement);
-		
-		TextView status = (TextView) findViewById(R.id.tStatus);
-		status.setText(current_status);
-		
+				
 	}
 	
+	// Starts the AcceptThread
 	private void listenForConnectionOfMyHealth() {
 		accepter = new AcceptThread();
 		accepter.start();
 	}
 
+	// Start the ConnectedThread and passes the socket
 	private void manageConnectedSocket(BluetoothSocket socket) {
 		connectThread = new ConnectThread(socket);
 		connectThread.start();
 	}
 
+	/**
+	 * 
+	 * Waits for connection. When accepted passes the new socket to manageConnectedSocket() and
+	 * closes original socket.
+	 *
+	 */
 	private class AcceptThread extends Thread {
 		private final BluetoothServerSocket mmServerSocket;
 		private static final String NAME = "MeasurementdeviceJcheed";
@@ -195,6 +206,12 @@ public class MainActivity extends Activity {
 		}
 	}
 
+	/**
+	 * 
+	 * Manages the connection to MyHealthApp. Writes data depending on current_status and current_measurement.
+	 * 
+	 *
+	 */
 	private class ConnectThread extends Thread {
 		private final BluetoothSocket mmSocket;
 		private final InputStream mmInStream;
@@ -230,17 +247,19 @@ public class MainActivity extends Activity {
 					Thread.sleep(1000);
 					
 					if(stop) {
-						Log.e("simulator", "Sending STOP message");
-						String valueToSend =  current_measurement + ";stop";
-						byte[] sendPulseMeasurement = valueToSend.getBytes();
-						write(sendPulseMeasurement);
+						//Log.e("simulator", "Sending STOP message");
+						//String valueToSend =  current_measurement + ";stop";
+						//byte[] sendPulseMeasurement = valueToSend.getBytes();
+						//write(sendPulseMeasurement);
+						
+						String string = getStringToWrite();
+						byte[] test = string.getBytes();
+						write(test);
+						Log.e("simulator", "Measurement " + current_measurement + " send");
+						
 						stop = false;
 					}
 					
-					String string = getStringToWrite();
-					byte[] test = string.getBytes();
-					write(test);
-					Log.e("simulator", "Write gestuurd");
 				} catch (IOException e1) {
 					// TODO Auto-generated catch block
 					e1.printStackTrace();
@@ -254,21 +273,9 @@ public class MainActivity extends Activity {
 
 					try {		
 						byte[] buffer;
-						
 						buffer = new byte[available];
-
 						mmInStream.read(buffer);
-
 						String message = new String(buffer);
-						
-						/**
-						if(message.equals("pulsewaves")) {
-							String valueToSend =  "" + pulsemeasurement();
-							byte[] sendPulseMeasurement = valueToSend.getBytes();
-							write(sendPulseMeasurement);
-						}
-
-						Log.e("simulator", "Message is: " + message);**/
 
 					} catch (IOException e) {
 						e.printStackTrace();
@@ -278,20 +285,7 @@ public class MainActivity extends Activity {
 
 		}
 		
-		private int pulsemeasurement() {
-			
-			int minimum = 60;
-			int maximum = 100;
-			
-			int value = 0;
-			
-			value = minimum + (int)(Math.random() * ((maximum - minimum) + 1));
-			
-			return value;
-			
-		}
-
-		/* Call this from the main activity to send data to the remote device */
+		/* writes to the remote device */
 		public void write(byte[] bytes) {
 			try {
 				mmOutStream.write(bytes);
@@ -300,7 +294,7 @@ public class MainActivity extends Activity {
 			}
 		}
 
-		/* Call this from the main activity to shutdown the connection */
+		/* Shuts down the connection */
 		public void cancel() {
 			try {
 				mmSocket.close();
@@ -309,6 +303,7 @@ public class MainActivity extends Activity {
 			}
 		}
 		
+		// Return appropriate string that represents a measurement in CSV format.
 		private String getStringToWrite() {
 			String returnStatus = "";
 			String returnValue = "No data";
@@ -330,12 +325,21 @@ public class MainActivity extends Activity {
 		}
 	}
 	
+	/**
+	 * Returns a string that represents a pulse measurement
+	 * @return
+	 */
 	public String getPulseMeasurement() {
 		Random r = new Random();
 		Integer pulsemeasurement = (r.nextInt(40) + 60);
 		return pulsemeasurement.toString();
 	}
 	
+	/**
+	 * Returns a string that represents a bloodpressure measurement
+	 * Sends values in csv format
+	 * @return
+	 */
 	public String getBloodpressureMeasurement() {
 		Random r = new Random();
 		Integer hypotension = (r.nextInt(20) + 70);
@@ -344,6 +348,11 @@ public class MainActivity extends Activity {
 		return hypotension + ";" + hypertension;
 	}
 	
+	/**
+	 * Returns a string that represents a ECG measurement unit
+	 * Sends values in csv format
+	 * @return 
+	 */
 	public String getECGMeasurement() {
 		Random r = new Random();
 		Integer printerval = (r.nextInt(25) + 50);

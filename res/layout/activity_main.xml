@@ -38,26 +38,6 @@
         android:layout_gravity="center"
         android:onClick="onClick"
         android:text="ECG" />
-    
-    <LinearLayout
-    	android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal" > 
-   
-	    <TextView
-	        android:layout_width="wrap_content"
-	        android:layout_height="wrap_content"
-	        android:layout_gravity="center"
-	        android:text="Status measurment: " />
-	    
-	    <TextView
-	        android:id="@+id/tStatus"
-	        android:layout_width="wrap_content"
-	        android:layout_height="wrap_content"
-	        android:layout_gravity="center"
-	        android:text="Inactive" />
-	    
-	</LinearLayout>    
 	
     <LinearLayout
     	android:layout_width="match_parent"
@@ -85,6 +65,6 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:onClick="onClick"
-        android:text="Start" />
+        android:text="Send" />
 
 </LinearLayout>

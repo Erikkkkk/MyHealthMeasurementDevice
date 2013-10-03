@@ -123,11 +123,19 @@ public class MainActivity extends Activity {
 	}
 	
 	public void setMainContentView() {
-		if(connected) {
-			setContentView(R.layout.activity_main);
-		} else {
-			setContentView(R.layout.progressbar_with_message);
-		}
+		
+		MainActivity.this.runOnUiThread(new Runnable() {
+
+	        public void run() {
+	        	if(connected) {
+	    			Log.e("simulator", "Verander content view");
+	    			setContentView(R.layout.activity_main);
+	    			Log.e("simulator", "Veranderd");
+	    		} else {
+	    			setContentView(R.layout.progressbar_with_message);
+	    		}
+	        }
+	    });
 	}
 	
 	// Starts the AcceptThread
@@ -250,7 +258,7 @@ public class MainActivity extends Activity {
 						byte[] measurement = measurementString.getBytes();
 						write(measurement);
 						Log.e("simulator", "Measurement " + current_measurement + " send");
-						showToast("Measurement " + current_measurement + " send");
+						showToastMessagesend();
 						
 						send = false;
 					}
@@ -360,8 +368,15 @@ public class MainActivity extends Activity {
 				 + rpeak + ";" + strough + ";" + tpeak + ";" + ppeak;
 	}
 	
-	public void showToast(String message) {
-		Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+	public void showToastMessagesend() {
+		
+		MainActivity.this.runOnUiThread(new Runnable() {
+
+	        public void run() {
+	        	Toast.makeText(MainActivity.this, "Measurement send", Toast.LENGTH_SHORT).show();
+	        }
+	    });
+		
 	}
 
 	@Override

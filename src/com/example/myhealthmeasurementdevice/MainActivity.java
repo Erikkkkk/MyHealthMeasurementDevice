@@ -24,20 +24,15 @@ import android.widget.Toast;
 
 public class MainActivity extends Activity {
 	private final static int REQUEST_ENABLE_BT = 1;
+	private static final String MEASUREMENT_PULSE = "pulse";
+	private static final String MEASUREMENT_BLOODPRESSURE = "bloodpressure";
+	private static final String MEASUREMENT_ECG = "ecg";
 	
-	private static final String status_inactive = "Inactive";
-	private static final String status_active = "Active";
-	private static final String measurement_pulse = "pulse";
-	private static final String measurement_bloodpressure = "bloodpressure";
-	private static final String measurement_ecg = "ecg";
-	
-	private ConnectThread connectThread;
 	private BluetoothAdapter btAdapter;
 	private AcceptThread accepter;
+	private ConnectThread connectThread;
 	
-	private String current_status;
 	private String current_measurement;
-	
 	private boolean connected = false;
 	private boolean send = false;
 	
@@ -46,7 +41,7 @@ public class MainActivity extends Activity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 		
-		current_measurement = measurement_pulse;
+		current_measurement = MEASUREMENT_PULSE;
 
 		// Make sure device has bluetooth
 		btAdapter = BluetoothAdapter.getDefaultAdapter();
@@ -81,7 +76,8 @@ public class MainActivity extends Activity {
 
 		//Start listening
 		listenForConnectionOfMyHealth();
-		updateTextViews();
+		setMainContentView();
+		updateViews();
 	}
 	
 	/**
@@ -93,32 +89,45 @@ public class MainActivity extends Activity {
 		    final int id = v.getId();
 		    switch (id) {
 		    case R.id.bPulse:
-		    	current_measurement = measurement_pulse;
+		    	current_measurement = MEASUREMENT_PULSE;
 		        break;
 		    case R.id.bBloodpressure:
-		    	current_measurement = measurement_bloodpressure;
+		    	current_measurement = MEASUREMENT_BLOODPRESSURE;
 		        break;
 		    case R.id.bECG:
-		    	current_measurement = measurement_ecg;
+		    	current_measurement = MEASUREMENT_ECG;
 		        break;
 		    case R.id.bStartStop:
-		    	send = true;
+		    	if(!send) {
+		    		send = true;
+		    	} else {
+		    		Toast.makeText(this, "Still sending previous measurement, pleast wait a moment.", Toast.LENGTH_SHORT).show();
+		    	}
 		        break;    
 		    }
 		    
-		    updateTextViews();
+		    updateViews();
 		} else {
 			Toast.makeText(this, "Waiting for MyHealthApp to connect", Toast.LENGTH_SHORT).show();
 		}
 	}
 
 	/**
-	 * Update the textviews that display the status and measurement type that is selected
+	 * Update the views that display the status and measurement type that is selected
 	 */
-	public void updateTextViews() {
-		TextView measurement = (TextView) findViewById(R.id.tMeasurement);
-		measurement.setText(current_measurement);
-				
+	public void updateViews() {
+		if(connected) {
+			TextView measurement = (TextView) findViewById(R.id.tMeasurement);
+			measurement.setText(current_measurement);			
+		}
+	}
+	
+	public void setMainContentView() {
+		if(connected) {
+			setContentView(R.layout.activity_main);
+		} else {
+			setContentView(R.layout.progressbar_with_message);
+		}
 	}
 	
 	// Starts the AcceptThread
@@ -132,12 +141,13 @@ public class MainActivity extends Activity {
 		connected = true;
 		connectThread = new ConnectThread(socket);
 		connectThread.start();
+		setMainContentView();
 	}
 
 	/**
 	 * 
 	 * Waits for connection. When accepted passes the new socket to manageConnectedSocket() and
-	 * closes original socket.
+	 * closes the bluetoothAdapter.
 	 *
 	 */
 	private class AcceptThread extends Thread {
@@ -235,16 +245,12 @@ public class MainActivity extends Activity {
 					available = mmInStream.available();
 					Thread.sleep(1000);
 					
-					if(send) {
-						//Log.e("simulator", "Sending STOP message");
-						//String valueToSend =  current_measurement + ";stop";
-						//byte[] sendPulseMeasurement = valueToSend.getBytes();
-						//write(sendPulseMeasurement);
-						
-						String string = getStringToWrite();
-						byte[] test = string.getBytes();
-						write(test);
+					if(send) {						
+						String measurementString = getStringToWrite();
+						byte[] measurement = measurementString.getBytes();
+						write(measurement);
 						Log.e("simulator", "Measurement " + current_measurement + " send");
+						showToast("Measurement " + current_measurement + " send");
 						
 						send = false;
 					}
@@ -292,26 +298,22 @@ public class MainActivity extends Activity {
 			}
 		}
 		
-		// Return appropriate string that represents a measurement in CSV format.
-		private String getStringToWrite() {
-			String returnStatus = "";
-			String returnValue = "No data";
-			if(current_status == status_inactive) {
-				returnStatus = status_inactive;
-			} else {
-				returnStatus = current_measurement;
-				
-				if(current_measurement == measurement_pulse) {
-					returnValue = getPulseMeasurement();
-				} else if (current_measurement == measurement_bloodpressure) {
-					returnValue = getBloodpressureMeasurement();
-				} else if (current_measurement == measurement_ecg) {
-					returnValue = getECGMeasurement();
-				}
-			}
-			
-			return returnStatus + ";" + returnValue;
+	}
+	
+	// Return appropriate string that represents a measurement in CSV format.
+	private String getStringToWrite() {
+		String type = current_measurement;
+		String data = "No data";
+
+		if (current_measurement == MEASUREMENT_PULSE) {
+			data = getPulseMeasurement();
+		} else if (current_measurement == MEASUREMENT_BLOODPRESSURE) {
+			data = getBloodpressureMeasurement();
+		} else if (current_measurement == MEASUREMENT_ECG) {
+			data = getECGMeasurement();
 		}
+
+		return type + ";" + data;
 	}
 	
 	/**
@@ -325,8 +327,8 @@ public class MainActivity extends Activity {
 	}
 	
 	/**
-	 * Returns a string that represents a bloodpressure measurement
-	 * Sends values in csv format
+	 * Returns a string that represents a blood pressure measurement
+	 * Sends values in CSV format
 	 * @return
 	 */
 	public String getBloodpressureMeasurement() {
@@ -339,7 +341,7 @@ public class MainActivity extends Activity {
 	
 	/**
 	 * Returns a string that represents a ECG measurement unit
-	 * Sends values in csv format
+	 * Sends values in CSV format
 	 * @return 
 	 */
 	public String getECGMeasurement() {
@@ -356,6 +358,10 @@ public class MainActivity extends Activity {
 		Integer ppeak = (r.nextInt(4) + 2);
 		return printerval + ";" + prsegment + ";" + qrscomplex + ";" + stsegment + ";" + qtinterval + ";" + qtrough + ";"
 				 + rpeak + ";" + strough + ";" + tpeak + ";" + ppeak;
+	}
+	
+	public void showToast(String message) {
+		Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
 	}
 
 	@Override

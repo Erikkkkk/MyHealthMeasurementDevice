@@ -8,12 +8,44 @@
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
     tools:context=".MainActivity" >
+    
+    <LinearLayout
+    	android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="horizontal" > 
+            
+	    <TextView
+	        android:layout_width="match_parent"
+	        android:layout_height="wrap_content"
+	        android:layout_weight="1"
+	        android:text="Measurement type: " />
+	    
+	    <TextView
+	        android:id="@+id/tMeasurement"
+	        android:layout_width="match_parent"
+	        android:layout_height="wrap_content"
+	        android:layout_weight="1"
+	        android:textSize="30sp"
+	        android:text="Pulse" />
+    
+    </LinearLayout>  
+    
+    <Button
+        android:id="@+id/bStartStop"
+        android:layout_marginTop="20sp"
+        android:layout_width="200sp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:onClick="onClick"
+        android:text="Send" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginTop="30sp"
         android:layout_gravity="center"
-        android:text="Set measurement: " />
+        android:text="Select measurement to send" />
 
     <Button
         android:id="@+id/bPulse"
@@ -38,33 +70,5 @@
         android:layout_gravity="center"
         android:onClick="onClick"
         android:text="ECG" />
-	
-    <LinearLayout
-    	android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal" > 
-            
-	    <TextView
-	        android:layout_width="wrap_content"
-	        android:layout_height="wrap_content"
-	        android:layout_gravity="center"
-	        android:text="Measurement type: " />
-	    
-	    <TextView
-	        android:id="@+id/tMeasurement"
-	        android:layout_width="wrap_content"
-	        android:layout_height="wrap_content"
-	        android:layout_gravity="center"
-	        android:text="Pulse" />
-    
-    </LinearLayout>  
-    
-    <Button
-        android:id="@+id/bStartStop"
-        android:layout_width="200sp"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:onClick="onClick"
-        android:text="Send" />
 
 </LinearLayout>
